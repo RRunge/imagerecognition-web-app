@@ -30,7 +30,7 @@ public class ImageClassifier {
         try {
             //Setup the VGG16 model from the DL4J ModelZoo
             ZooModel zooModel = new VGG16();
-            vgg16 = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
+            vgg16 = (ComputationGraph) new VGG16().initPretrained(PretrainedType.IMAGENET);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -45,19 +45,30 @@ public class ImageClassifier {
      */
     String classify(InputStream inputStream) {
 
+        INDArray image = loadImage(inputStream);
+
+        normalizeImage(image);
+
+        INDArray output = processImage(image);
+
+        List<Prediction> predictions = decodePredictions(output);
+
+        return predictionsToString(predictions);
+    }
+
+    private INDArray processImage(final INDArray image) {
+        INDArray[] output = vgg16.output(false, image);
+        return output[0];
+    }
+
+    private INDArray loadImage(final InputStream inputStream) {
         INDArray image = null;
         try {
             image = nativeImageLoader.asMatrix(inputStream);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        normalizeImage(image);
-
-        INDArray[] output = vgg16.output(false, image);
-        List<Prediction> predictions = decodePredictions(output[0]);
-
-        return predictionsToString(predictions);
+        return image;
     }
 
     /**
